@@ -21,13 +21,13 @@ Durante cada operacion se le dara un intervalo detiempo entre 10 y 20 segundos, 
 ->LOTE DE PRUEBAS
 
 Cada plato representa una operacion matematica con un mismo numero para todas las operaciones siendo:
-Patel de papa: Divido, sumo y multiplico por 2
-Guiso de Lentejas: Divido, sumo y multiplico por 5
-Locro: Divido, sumo y multiplico por 8
+Patel de papa: Divido, sumo y multiplico por 2\n
+Guiso de Lentejas: Divido, sumo y multiplico por 5\n
+Locro: Divido, sumo y multiplico por 8\n
 
 El plato base con el que empezaran las operaciones sera el mismo lote de pruebas siendo: {30, 10, 60, 20, 8}. Los resultados esperados son:
-Pastel de Papa: {12,14,24,34,64}
-Guiso de lentejas:{30,35,45,55,85}
-Locro:{72, 72, 80, 80, 120}
+Pastel de Papa: {12,14,24,34,64}\n
+Guiso de lentejas:{30,35,45,55,85}\n
+Locro:{72, 72, 80, 80, 120}\n
 
 *Nota: Al dividir por numero impar se redondea para abajo.*
