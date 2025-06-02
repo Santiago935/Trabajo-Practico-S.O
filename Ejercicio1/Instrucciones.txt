@@ -4,15 +4,15 @@ El objetivo es ver el comportamiento de los procesos.
 
 -> COMO EJECUTAR EL ARCHIVO:
 
-  1)Abra la terminal en la ubicacion del archivo ej1.c
-  2)Escriba en la terminal gcc -c ej1.c
-  3)Ahora escriba en la terminal gcc ej1.o -o cocina
+  1)Abra la terminal en la ubicacion del archivo Ej1.c
+  2)Escriba en la terminal gcc -c Ej1.c
+  3)Ahora escriba en la terminal gcc Ej1.o -o cocina
   4)Ya puede ejecutar el archivo usando ./cocina
 
 -> FUNCIONAMIENTO
 
 El programa dara la opcion de "cocinar" tres platos. Cada plato se cocina mediante el orden: 
-  Cortar (Divido)->Cocinar(Sumo)->Picar(Multiplico)->Empaltar(Ordeno de menor a mayor)
+  Cortar (Divido)->Cocinar(Sumo)->Picar(Multiplico)->Emplatar(Ordeno de menor a mayor)
 
 Durante cada operacion se le dara un intervalo detiempo entre 10 y 20 segundos, junto al PID del proceso para que pueda consultar tranquilamente en la terminal. 
 
