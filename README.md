@@ -1,7 +1,6 @@
-# Trabajo-Practico-S.O.
-TP de Sistemas Operativos
+# Trabajo-Practico-Sistemas-Operativos
 
-*Ejercicio 1*
+# Ejercicio 1
 
 El objetivo es ver el comportamiento de los procesos. 
 
@@ -31,4 +30,4 @@ Pastel de Papa: {12,14,24,34,64}
 Guiso de lentejas:{30,35,45,55,85}
 Locro:{72, 72, 80, 80, 120}
 
-Nota: Al dividir por numero impar se redondea para abajo.
+*Nota: Al dividir por numero impar se redondea para abajo.*
