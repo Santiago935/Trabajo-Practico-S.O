@@ -14,16 +14,16 @@ El objetivo es ver el comportamiento de los procesos.
 -> FUNCIONAMIENTO
 
 El programa dara la opcion de "cocinar" tres platos. Cada plato se cocina mediante el orden: 
-  Cortar (Divido)->Cocinar(Sumo)->Picar(Multiplico)->Empaltar(Ordeno de menor a mayor)
+  Cortar (Divido)->Cocinar(Sumo)->Picar(Multiplico)->Empaltar(Ordeno de menor a mayor)  
 
 Durante cada operacion se le dara un intervalo detiempo entre 10 y 20 segundos, junto al PID del proceso para que pueda consultar tranquilamente en la terminal. 
 
 ->LOTE DE PRUEBAS
 
 Cada plato representa una operacion matematica con un mismo numero para todas las operaciones siendo:
-Patel de papa: Divido, sumo y multiplico por 2\n
-Guiso de Lentejas: Divido, sumo y multiplico por 5\n
-Locro: Divido, sumo y multiplico por 8\n
+Patel de papa: Divido, sumo y multiplico por 2  
+Guiso de Lentejas: Divido, sumo y multiplico por 5  
+Locro: Divido, sumo y multiplico por 8  
 
 El plato base con el que empezaran las operaciones sera el mismo lote de pruebas siendo: {30, 10, 60, 20, 8}. Los resultados esperados son:
 Pastel de Papa: {12,14,24,34,64}\n
