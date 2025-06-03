@@ -15,10 +15,49 @@ int servidor_activo = 1;
 int servidor_fd;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
+void cortarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
+void picarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
+void cocinarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
+void emplatarIngredientes(int ingredientes[], int cantidadIngredientes);
+
 void procesar_mensaje(char* buffer, char* respuesta) {
     char arg1[64], arg2[64];
+    int datosIniciales[] = {30, 10, 60, 20, 8};
+    int num, numReceta;
 
-    if (strncmp(buffer, "CORTAR:", 7) == 0) {
+    if (strncmp(buffer, "RECETAS:", 8) == 0)
+    {
+        sprintf(respuesta, "Recetas:\n1- Pastel de Papas.\n2- Guiso de lentejas.\n3- Locro.\n");
+    }
+    else if (strncmp(buffer, "CHEFF:", 6) == 0)
+    {
+        numReceta = atoi(buffer + 6);
+        
+        if (numReceta == 1)
+            num = 2;
+        else if (numReceta == 2)
+            num = 5;
+        else if (numReceta == 3)
+            num = 8;
+        else
+        {
+            sprintf(respuesta, "No se conoce ese plato.");
+            return;
+        }
+
+        cortarIngredientes(datosIniciales, 5, num);
+        cocinarIngredientes(datosIniciales, 5, num);
+        picarIngredientes(datosIniciales, 5, num);
+        emplatarIngredientes(datosIniciales, 5);
+        sprintf(respuesta, "Plato final:");
+
+        for(int i = 0; i < 5; i++)
+        {
+            sprintf(arg1, " %d", datosIniciales[i]);
+            strcat(respuesta, arg1);
+        }
+    }
+    else if (strncmp(buffer, "CORTAR:", 7) == 0) {
         sscanf(buffer + 7, "%s", arg1);
         sprintf(respuesta, "Resultado: %s cortada\n", arg1);
     } else if (strncmp(buffer, "COCINAR:", 8) == 0) {
@@ -110,17 +149,20 @@ int main() {
 
         pthread_mutex_lock(&lock);
         if (clientes_activos >= MAX_CLIENTES) {
+            //INFORMAMOS AL CLIENTE QUE NO PODEMOS ATENDERLO
             pthread_mutex_unlock(&lock);
-            printf("[Servidor] Límite alcanzado. Cliente rechazado.\n");
+            printf("[Servidor] Limite alcanzado. Cliente rechazado.\n");
+            write(nuevo_fd, "Capacidad maxima alcanzada", 26);
             close(nuevo_fd);
             continue;
         }
         clientes_activos++;
         pthread_mutex_unlock(&lock);
 
+        //INFORMAMOS AL CLIENTE QUE PODEMOS ATENDERLO
         int* nuevo_socket = malloc(sizeof(int));
         *nuevo_socket = nuevo_fd;
-
+        write(nuevo_fd, "Servidor pendiente de mensaje", 29);
         pthread_t hilo;
         pthread_create(&hilo, NULL, manejar_cliente, nuevo_socket);
         pthread_detach(hilo);
@@ -129,4 +171,41 @@ int main() {
     close(servidor_fd);
     printf("[Servidor] Finalizado correctamente.\n");
     return 0;
+}
+
+void cortarIngredientes(int ingredientes[], int cantidadIngredientes, int num)
+{
+    for (int i = 0; i < cantidadIngredientes; i++)
+    {
+        ingredientes[i] = ingredientes[i] / num;
+    }
+}
+
+void picarIngredientes(int ingredientes[], int cantidadIngredientes, int num)
+{
+    for (int i = 0; i < cantidadIngredientes; i++)
+    {
+        ingredientes[i] *= num;
+    }
+}
+
+void cocinarIngredientes(int ingredientes[], int cantidadIngredientes, int num)
+{
+    for (int i = 0; i < cantidadIngredientes; i++)
+    {
+        ingredientes[i] += num;
+    }
+}
+
+void emplatarIngredientes(int ingredientes[], int cantidadIngredientes)
+{
+    // Simula ordenar ingredientes
+    for (int i = 0; i < cantidadIngredientes - 1; i++)
+        for (int j = 0; j < cantidadIngredientes - i - 1; j++)
+            if (ingredientes[j] > ingredientes[j + 1])
+            {
+                int tmp = ingredientes[j];
+                ingredientes[j] = ingredientes[j + 1];
+                ingredientes[j + 1] = tmp;
+            }
 }
