@@ -7,9 +7,9 @@ El objetivo es ver el comportamiento de los procesos.
 -> COMO EJECUTAR EL ARCHIVO:  
   
   1)Abra la terminal en la ubicacion del archivo Ej1.c  
-  2)Escriba en la terminal 'gcc -c Ej1.c'  
-  3)Ahora escriba en la terminal 'gcc Ej1.o -o cocina'
-  4)Ya puede ejecutar el archivo usando './cocina'  
+  2)Escriba en la terminal `gcc -c Ej1.c` 
+  3)Ahora escriba en la terminal `gcc Ej1.o -o cocina`
+  4)Ya puede ejecutar el archivo usando `./cocina`  
   
 -> FUNCIONAMIENTO  
   
@@ -38,8 +38,8 @@ Locro:{72, 72, 80, 88, 120}
 ->INSTRUCCIONES
 
 1)Abrir la terminal en la carpeta. 
-2) Hacer un MakeFile (en bash/ubuntu), para esto escribir 'nano Makefile' y copiar:
-'
+2) Hacer un MakeFile (en bash/ubuntu), para esto escribir `nano Makefile` y copiar:
+`
 CC = gcc
 CFLAGS = -Wall -pthread
 
@@ -53,7 +53,7 @@ Cliente: Cliente.c
 
 clean:
         rm -f Servidor Cliente
-'
+`
 
 Para terminar:
 1- Ctrl + O para guardar
@@ -68,11 +68,11 @@ Luego: 	   make
 
 Para probarlo, abrir una consola (en el directorio del proyecto) y escribir
 
-'./Servidor'
+`./Servidor`
 
 Ahora en otra consola (abierta en el directorio del proyecto) y escribir
 
-'./Cliente'
+`./Cliente`
 
 ------------------------------------------------
 Las acciones disponibles para la consola abierta con la aplicacion cliente son las siguientes:
