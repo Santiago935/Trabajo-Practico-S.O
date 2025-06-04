@@ -39,7 +39,7 @@ Locro:{72, 72, 80, 88, 120}
 
 1)Abrir la terminal en la carpeta. 
 2) Hacer un MakeFile (en bash/ubuntu), para esto escribir `nano Makefile` y copiar:
-`
+'
 CC = gcc
 CFLAGS = -Wall -pthread
 
@@ -53,7 +53,7 @@ Cliente: Cliente.c
 
 clean:
         rm -f Servidor Cliente
-`
+'
 
 Para terminar:
 1- Ctrl + O para guardar
