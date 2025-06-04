@@ -41,8 +41,10 @@ Se puede verificar la existencia y muerte de los procesos mediante htop, ps o to
 Cuando se inicia la operacion de alguna comida, se crea el proceso padre y los cuatro procesos hijos. A medida que los hijos cumplen su 
 función, van siendo eliminados. Una vez completada la comida, todos los procesos mueren.  
   
-El nombre de todos los procesos es: ./<Nombre del Archivo>  
-  
+El nombre de todos los procesos es: './cocina'  
+
+*Nota: el nombre de los procesos corresponde al nombre del archivo.*
+
 # Ejercicio 2  
   
 -------------------------------------------------  
