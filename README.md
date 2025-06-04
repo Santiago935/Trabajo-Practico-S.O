@@ -36,12 +36,12 @@ Locro:{72, 72, 80, 88, 120}
   
 *Nota: Al dividir por numero impar se redondea para abajo.*   
 
-->MONITONEO
+->MONITONEO  
 Se puede verificar la existencia y muerte de los procesos mediante htop, ps o top. El programa le da automaticamente el PID del proceso.
 Cuando se inicia la operacion de alguna comida, se crea el proceso padre y los cuatro procesos hijos. A medida que los hijos cumplen su 
-función, van siendo eliminados. Una vez completada la comida, todos los procesos mueren.
-
-El nombre de todos los procesos es: ./<Nombre del Archivo>
+función, van siendo eliminados. Una vez completada la comida, todos los procesos mueren.  
+  
+El nombre de todos los procesos es: ./<Nombre del Archivo>  
   
 # Ejercicio 2  
   
