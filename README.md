@@ -32,7 +32,7 @@ Locro:{72, 72, 80, 88, 120}
   
 *Nota: Al dividir por numero impar se redondea para abajo.*  
 
-#Ejercicio 2
+# Ejercicio 2
 
 -------------------------------------------------
 ->INSTRUCCIONES
