@@ -66,13 +66,9 @@ Luego: 	   make
   
 ->FUNCIONAMIENTO  
   
-Para probarlo, abrir una consola (en el directorio del proyecto) y escribir  
+Para probarlo, abrir una consola (en el directorio del proyecto) y escribir `./Servidor`  
   
-`./Servidor`  
-  
-Ahora en otra consola (abierta en el directorio del proyecto) y escribir  
-  
-`./Cliente`  
+Ahora en otra consola (abierta en el directorio del proyecto) y escribir `./Cliente`  
   
 ------------------------------------------------  
 Las acciones disponibles para la consola abierta con la aplicacion cliente son las siguientes:  
