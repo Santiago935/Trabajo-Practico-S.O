@@ -7,8 +7,8 @@ El objetivo es ver el comportamiento de los procesos.
 -> COMO EJECUTAR EL ARCHIVO:  
   
   1)Abra la terminal en la ubicacion del archivo Ej1.c  
-  2)Escriba en la terminal `gcc -c Ej1.c` 
-  3)Ahora escriba en la terminal `gcc Ej1.o -o cocina`
+  2)Escriba en la terminal `gcc -c Ej1.c`  
+  3)Ahora escriba en la terminal `gcc Ej1.o -o cocina`  
   4)Ya puede ejecutar el archivo usando `./cocina`  
   
 -> FUNCIONAMIENTO  
