@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/mman.h>
-#include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define N 5
 #define HIJOS 4
@@ -17,7 +18,6 @@ typedef struct
     int finalizar;
 } Mesa;
 
-// Operaciones para System V
 struct sembuf wait_op = {0, -1, 0};
 struct sembuf signal_op = {0, 1, 0};
 
@@ -28,11 +28,18 @@ void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, i
 
 int main()
 {
-    Mesa* mesa = mmap(NULL, sizeof(Mesa), PROT_READ | PROT_WRITE,
-                      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (mesa == MAP_FAILED)
+    key_t key = ftok("/tmp", 65);
+    int shmid = shmget(key, sizeof(Mesa), 0666 | IPC_CREAT);
+    if (shmid == -1)
     {
-        perror("mmap");
+        perror("shmget");
+        exit(EXIT_FAILURE);
+    }
+
+    Mesa* mesa = (Mesa*)shmat(shmid, NULL, 0);
+    if (mesa == (void*)-1)
+    {
+        perror("shmat");
         exit(EXIT_FAILURE);
     }
 
@@ -41,7 +48,6 @@ int main()
     memset(mesa->interacciones, 0, sizeof(mesa->interacciones));
     mesa->finalizar = 0;
 
-    // Crear semaforos System V
     int semA = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
     int semB = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
     int semC = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
@@ -127,7 +133,9 @@ int main()
             semctl(semB, 0, IPC_RMID);
             semctl(semC, 0, IPC_RMID);
             semctl(semD, 0, IPC_RMID);
-            munmap(mesa, sizeof(Mesa));
+
+            shmdt(mesa);
+            shmctl(shmid, IPC_RMID, NULL);
         }
         else
             printf("Opcion Invalida. Ingrese Nuevamente..\n");
@@ -212,6 +220,7 @@ void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, i
     semop(semSignal, &signal_op, 1);
     exit(0);
 }
+
 
     exit(0);
 }
