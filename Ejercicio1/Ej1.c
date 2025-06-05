@@ -220,7 +220,3 @@ void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, i
     semop(semSignal, &signal_op, 1);
     exit(0);
 }
-
-
-    exit(0);
-}
