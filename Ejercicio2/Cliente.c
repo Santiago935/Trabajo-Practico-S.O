@@ -22,19 +22,18 @@ int main() {
         return 1;
     }
 
-    //QUE ESTEMOS CONECTADOS NO IMPLICA QUE EL SERVIDOR PUEDA ATENDERNOS, HAY QUE ESPERAR EL MENSAJE DE CONFIRMACIÓN O DE RECHAZO
     int leido = read(sock, respuesta, sizeof(respuesta)-1);
-    if (leido > 0)
-    {
-        if(!strncmp(respuesta, "Servidor pendiente de mensaje", 29))
-        {
+    if (leido > 0) {
+        respuesta[leido] = '\0';
+        if (!strncmp(respuesta, "Servidor pendiente de mensaje", 29)) {
             printf("[Cliente] Conectado al servidor.\n");
-        }
-        else
-        {
+        } else {
             printf("[Servidor] %s\n", respuesta);
             return -1;
         }
+    } else {
+        printf("[Cliente] No se pudo leer confirmación del servidor.\n");
+        return -1;
     }
 
     while (1) {
@@ -51,6 +50,9 @@ int main() {
         if (leido > 0) {
             respuesta[leido] = '\0';
             printf("[Servidor] %s\n", respuesta);
+        } else {
+            printf("[Cliente] El servidor cerró la conexión. Saliendo...\n");
+            break;
         }
     }
 

@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <signal.h>
 
 #define PUERTO 5000
 #define MAX_CLIENTES 4
@@ -20,39 +21,38 @@ void picarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
 void cocinarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
 void emplatarIngredientes(int ingredientes[], int cantidadIngredientes);
 
+// Manejador de señal Ctrl+C
+void manejar_senal(int senal) {
+    if (senal == SIGINT) {
+        printf("\n[Servidor] Señal de interrupción recibida. Cerrando servidor...\n");
+        servidor_activo = 0;
+        shutdown(servidor_fd, SHUT_RDWR);
+        close(servidor_fd);
+    }
+}
+
 void procesar_mensaje(char* buffer, char* respuesta) {
     char arg1[64], arg2[64];
     int datosIniciales[] = {30, 10, 60, 20, 8};
     int num, numReceta;
 
     if (strncmp(buffer, "RECETAS:", 8) == 0)
-    {
         sprintf(respuesta, "Recetas:\n1- Pastel de Papas.\n2- Guiso de lentejas.\n3- Locro.\n");
-    }
-    else if (strncmp(buffer, "CHEFF:", 6) == 0)
-    {
+    else if (strncmp(buffer, "CHEFF:", 6) == 0) {
         numReceta = atoi(buffer + 6);
-        
-        if (numReceta == 1)
-            num = 2;
-        else if (numReceta == 2)
-            num = 5;
-        else if (numReceta == 3)
-            num = 8;
-        else
-        {
+        if (numReceta == 1) num = 2;
+        else if (numReceta == 2) num = 5;
+        else if (numReceta == 3) num = 8;
+        else {
             sprintf(respuesta, "No se conoce ese plato.");
             return;
         }
-
         cortarIngredientes(datosIniciales, 5, num);
         cocinarIngredientes(datosIniciales, 5, num);
         picarIngredientes(datosIniciales, 5, num);
         emplatarIngredientes(datosIniciales, 5);
         sprintf(respuesta, "Plato final:");
-
-        for(int i = 0; i < 5; i++)
-        {
+        for(int i = 0; i < 5; i++) {
             sprintf(arg1, " %d", datosIniciales[i]);
             strcat(respuesta, arg1);
         }
@@ -77,16 +77,14 @@ void procesar_mensaje(char* buffer, char* respuesta) {
     } else if (strncmp(buffer, "INVERSO:", 8) == 0) {
         sscanf(buffer + 8, "%s", arg1);
         int len = strlen(arg1);
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++)
             respuesta[i] = arg1[len - 1 - i];
-        }
         respuesta[len] = '\0';
         strcat(respuesta, "\n");
     } else if (strncmp(buffer, "MAYUS:", 6) == 0) {
         sscanf(buffer + 6, "%s", arg1);
-        for (int i = 0; arg1[i]; i++) {
+        for (int i = 0; arg1[i]; i++)
             respuesta[i] = toupper(arg1[i]);
-        }
         respuesta[strlen(arg1)] = '\0';
         strcat(respuesta, "\n");
     } else {
@@ -117,17 +115,23 @@ void* manejar_cliente(void* arg) {
 
     pthread_mutex_lock(&lock);
     clientes_activos--;
-    if (clientes_activos == 0) {
-        servidor_activo = 0;
-        shutdown(servidor_fd, SHUT_RDWR);
-    }
+        if (clientes_activos == 0 && servidor_activo)
+        {
+            printf("[Servidor] Todos los clientes se desconectaron. Cerrando servidor...\n");
+            servidor_activo = 0;
+            shutdown(servidor_fd, SHUT_RDWR);
+            close(servidor_fd);
+        }
     pthread_mutex_unlock(&lock);
+
     return NULL;
 }
 
 int main() {
     struct sockaddr_in servidor_addr, cliente_addr;
     socklen_t cliente_len = sizeof(cliente_addr);
+
+    signal(SIGINT, manejar_senal);  // Ctrl+C = apagado seguro
 
     servidor_fd = socket(AF_INET, SOCK_STREAM, 0);
     servidor_addr.sin_family = AF_INET;
@@ -149,7 +153,6 @@ int main() {
 
         pthread_mutex_lock(&lock);
         if (clientes_activos >= MAX_CLIENTES) {
-            //INFORMAMOS AL CLIENTE QUE NO PODEMOS ATENDERLO
             pthread_mutex_unlock(&lock);
             printf("[Servidor] Limite alcanzado. Cliente rechazado.\n");
             write(nuevo_fd, "Capacidad maxima alcanzada", 26);
@@ -159,7 +162,6 @@ int main() {
         clientes_activos++;
         pthread_mutex_unlock(&lock);
 
-        //INFORMAMOS AL CLIENTE QUE PODEMOS ATENDERLO
         int* nuevo_socket = malloc(sizeof(int));
         *nuevo_socket = nuevo_fd;
         write(nuevo_fd, "Servidor pendiente de mensaje", 29);
@@ -173,37 +175,27 @@ int main() {
     return 0;
 }
 
-void cortarIngredientes(int ingredientes[], int cantidadIngredientes, int num)
-{
+// funciones auxiliares
+
+void cortarIngredientes(int ingredientes[], int cantidadIngredientes, int num) {
     for (int i = 0; i < cantidadIngredientes; i++)
-    {
-        ingredientes[i] = ingredientes[i] / num;
-    }
+        ingredientes[i] /= num;
 }
 
-void picarIngredientes(int ingredientes[], int cantidadIngredientes, int num)
-{
+void picarIngredientes(int ingredientes[], int cantidadIngredientes, int num) {
     for (int i = 0; i < cantidadIngredientes; i++)
-    {
         ingredientes[i] *= num;
-    }
 }
 
-void cocinarIngredientes(int ingredientes[], int cantidadIngredientes, int num)
-{
+void cocinarIngredientes(int ingredientes[], int cantidadIngredientes, int num) {
     for (int i = 0; i < cantidadIngredientes; i++)
-    {
         ingredientes[i] += num;
-    }
 }
 
-void emplatarIngredientes(int ingredientes[], int cantidadIngredientes)
-{
-    // Simula ordenar ingredientes
+void emplatarIngredientes(int ingredientes[], int cantidadIngredientes) {
     for (int i = 0; i < cantidadIngredientes - 1; i++)
         for (int j = 0; j < cantidadIngredientes - i - 1; j++)
-            if (ingredientes[j] > ingredientes[j + 1])
-            {
+            if (ingredientes[j] > ingredientes[j + 1]) {
                 int tmp = ingredientes[j];
                 ingredientes[j] = ingredientes[j + 1];
                 ingredientes[j + 1] = tmp;
