@@ -7,6 +7,8 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/prctl.h>
+#include <signal.h>
 
 #define N 5
 #define HIJOS 4
@@ -35,6 +37,8 @@ int main()
         perror("shmget");
         exit(EXIT_FAILURE);
     }
+
+    prctl(PR_SET_PDEATHSIG, SIGTERM); 
 
     Mesa* mesa = (Mesa*)shmat(shmid, NULL, 0);
     if (mesa == (void*)-1)
@@ -91,6 +95,8 @@ int main()
             platos[opc - 1]++;
             if (cheff == 0)
             {
+                prctl(PR_SET_PDEATHSIG, SIGTERM);
+                setpgid(0, 0); 
                 printf("\nPID cheff: %d\n", getpid());
 
                 pid_t cocineroCorta = fork();
@@ -146,6 +152,7 @@ int main()
 
 void cortarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal)
 {
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
     semop(semEspera, &wait_op, 1);
     printf("\nPID cortar: %d\n", getpid());
 
@@ -163,6 +170,7 @@ void cortarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEs
 
 void picarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal)
 {
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
     semop(semEspera, &wait_op, 1);
     printf("\nPID picador: %d\n", getpid());
 
@@ -181,6 +189,7 @@ void picarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEsp
 
 void cocinarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal)
 {
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
     semop(semEspera, &wait_op, 1);
     printf("\nPID cocinar: %d", getpid());
 
@@ -198,6 +207,7 @@ void cocinarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semE
 
 void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, int semSignal)
 {
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
     semop(semEspera, &wait_op, 1);
     printf("\nPID emplatador: %d", getpid());
 
