@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
             break;
         }
 
+        strcat(mensaje, "\n");
+
         write(sock, mensaje, strlen(mensaje));
 
         leido = read(sock, respuesta, sizeof(respuesta)-1);
