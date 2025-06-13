@@ -12,6 +12,7 @@
 
 #define N 5
 #define HIJOS 4
+#define MAX_CHEFFS 100
 
 typedef struct
 {
@@ -23,24 +24,47 @@ typedef struct
 struct sembuf wait_op = {0, -1, 0};
 struct sembuf signal_op = {0, 1, 0};
 
+Mesa* mesa;
+int shmid;
+int semA, semB, semC, semD;
+pid_t cheffsActivos[MAX_CHEFFS];
+int cheffsCount = 0;
+
 void cortarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal);
 void picarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal);
 void cocinarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal);
 void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, int semSignal);
 
+void liberarRecursos() {
+    semctl(semA, 0, IPC_RMID);
+    semctl(semB, 0, IPC_RMID);
+    semctl(semC, 0, IPC_RMID);
+    semctl(semD, 0, IPC_RMID);
+    shmdt(mesa);
+    shmctl(shmid, IPC_RMID, NULL);
+}
+
+void manejar_salida(int sig) {
+    for (int i = 0; i < cheffsCount; i++)
+        killpg(cheffsActivos[i], SIGTERM);
+    liberarRecursos();
+    exit(0);
+}
+
 int main()
 {
+    signal(SIGINT, manejar_salida);
+    signal(SIGTERM, manejar_salida);
+
     key_t key = ftok("/tmp", 65);
-    int shmid = shmget(key, sizeof(Mesa), 0666 | IPC_CREAT);
+    shmid = shmget(key, sizeof(Mesa), 0666 | IPC_CREAT);
     if (shmid == -1)
     {
         perror("shmget");
         exit(EXIT_FAILURE);
     }
 
-    prctl(PR_SET_PDEATHSIG, SIGTERM); 
-
-    Mesa* mesa = (Mesa*)shmat(shmid, NULL, 0);
+    mesa = (Mesa*)shmat(shmid, NULL, 0);
     if (mesa == (void*)-1)
     {
         perror("shmat");
@@ -52,10 +76,10 @@ int main()
     memset(mesa->interacciones, 0, sizeof(mesa->interacciones));
     mesa->finalizar = 0;
 
-    int semA = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
-    int semB = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
-    int semC = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
-    int semD = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    semA = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    semB = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    semC = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
+    semD = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
 
     if (semA == -1 || semB == -1 || semC == -1 || semD == -1)
     {
@@ -91,29 +115,19 @@ int main()
                 num = 8;
                 break;
             }
+
             pid_t cheff = fork();
-            platos[opc - 1]++;
             if (cheff == 0)
             {
                 prctl(PR_SET_PDEATHSIG, SIGTERM);
-                setpgid(0, 0); 
+                setpgid(0, 0); // nuevo grupo de procesos
                 printf("\nPID cheff: %d\n", getpid());
+                pid_t pid;
 
-                pid_t cocineroCorta = fork();
-                if (cocineroCorta == 0)
-                    cortarIngredientes(N, num, mesa, semA, semB);
-
-                pid_t cocineroCocina = fork();
-                if (cocineroCocina == 0)
-                    cocinarIngredientes(N, num, mesa, semB, semC);
-
-                pid_t cocineroPica = fork();
-                if (cocineroPica == 0)
-                    picarIngredientes(N, num, mesa, semC, semD);
-
-                pid_t cocineroEmpalta = fork();
-                if (cocineroEmpalta == 0)
-                    emplatarIngredientes(N, mesa, semD, semA);
+                if ((pid = fork()) == 0) cortarIngredientes(N, num, mesa, semA, semB);
+                if ((pid = fork()) == 0) cocinarIngredientes(N, num, mesa, semB, semC);
+                if ((pid = fork()) == 0) picarIngredientes(N, num, mesa, semC, semD);
+                if ((pid = fork()) == 0) emplatarIngredientes(N, mesa, semD, semA);
 
                 for (int i = 0; i < HIJOS; i++)
                     wait(NULL);
@@ -121,8 +135,12 @@ int main()
                 exit(0);
             }
 
+            // Padre
+            setpgid(cheff, cheff);
+            cheffsActivos[cheffsCount++] = cheff;
             waitpid(cheff, NULL, 0);
             memcpy(mesa->datos, datos_iniciales, sizeof(datos_iniciales));
+            platos[opc - 1]++;
         }
         else if (opc == 4)
         {
@@ -134,17 +152,12 @@ int main()
             printf("Picar: %d\n", mesa->interacciones[1]);
             printf("Cocinar: %d\n", mesa->interacciones[2]);
             printf("Emplatar: %d\n", mesa->interacciones[3]);
-
-            semctl(semA, 0, IPC_RMID);
-            semctl(semB, 0, IPC_RMID);
-            semctl(semC, 0, IPC_RMID);
-            semctl(semD, 0, IPC_RMID);
-
-            shmdt(mesa);
-            shmctl(shmid, IPC_RMID, NULL);
+            liberarRecursos();
         }
         else
+        {
             printf("Opcion Invalida. Ingrese Nuevamente..\n");
+        }
     }
 
     return 0;
