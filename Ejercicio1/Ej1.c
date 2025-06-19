@@ -39,10 +39,17 @@ void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, i
 void intHandler(int signal) {
 	if (signal == SIGINT)
     {
+        semctl(semA, 0, IPC_RMID);
+        semctl(semB, 0, IPC_RMID);
+        semctl(semC, 0, IPC_RMID);
+        semctl(semD, 0, IPC_RMID);
+        shmdt(mesa);
+        shmctl(shmid, IPC_RMID, NULL);
         exit(0);
     }
     else if(signal == SIGKILL)
     {
+        // No puede controlarse en teoría
         exit(0);
     }
     else if(signal == SIGTERM)
