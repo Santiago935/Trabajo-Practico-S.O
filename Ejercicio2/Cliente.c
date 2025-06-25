@@ -4,14 +4,35 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <ctype.h>
+#include <signal.h>
+int sock;
+
+void handler_senal(int senal)
+{
+    if(senal == SIGINT)
+    {
+        printf("El programa ha terminado abruptamente");
+        close(sock);
+        exit(0);
+    }
+    else if(senal == SIGTERM)
+    {
+        printf("El programa ha terminado abruptamente");
+        close(sock);
+        exit(0);
+    }
+}
 
 int main(int argc, char *argv[])
 {
-    int sock;
     struct sockaddr_in servidor;
     char mensaje[1024], respuesta[1024];
     char ip[16];
     int puerto = 5000;
+
+    signal(SIGINT, handler_senal);
+    signal(SIGTERM, handler_senal);
 
     // Verificar que el usuario proporcione ip y opcional puerto
     if (argc < 2) {
