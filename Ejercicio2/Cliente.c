@@ -5,15 +5,13 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-
-
 int main(int argc, char *argv[])
 {
     int sock;
     struct sockaddr_in servidor;
     char mensaje[1024], respuesta[1024];
     char ip[16];
-    int puerto;
+    int puerto = 5000;
 
     // Verificar que el usuario proporcione ip y opcional puerto
     if (argc < 2) {

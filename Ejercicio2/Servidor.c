@@ -8,7 +8,6 @@
 #include <ctype.h>
 #include <signal.h>
 
-#define PUERTO 5000
 #define MAX_CLIENTES 4
 
 int clientes_activos = 0;
@@ -21,10 +20,16 @@ void picarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
 void cocinarIngredientes(int ingredientes[], int cantidadIngredientes, int num);
 void emplatarIngredientes(int ingredientes[], int cantidadIngredientes);
 
-// Manejador de se�al Ctrl+C
+// Manejador de señal Ctrl+C o kill en terminal
 void manejar_senal(int senal) {
     if (senal == SIGINT) {
-        printf("\n[Servidor] Se�al de interrupci�n recibida. Cerrando servidor...\n");
+        printf("\n[Servidor] Señal de interrupción recibida. Cerrando servidor...\n");
+        servidor_activo = 0;
+        shutdown(servidor_fd, SHUT_RDWR);
+        close(servidor_fd);
+    }
+    if(senal == SIGTERM){
+        printf("\n[Servidor] Señal de terminación recibida. Cerrando servidor...\n");
         servidor_activo = 0;
         shutdown(servidor_fd, SHUT_RDWR);
         close(servidor_fd);
@@ -127,21 +132,36 @@ void* manejar_cliente(void* arg) {
     return NULL;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     struct sockaddr_in servidor_addr, cliente_addr;
     socklen_t cliente_len = sizeof(cliente_addr);
+    char ip[16];
+    int puerto = 5000;
 
+    signal(SIGTERM, manejar_senal);  // kill en terminal = apagado seguro
     signal(SIGINT, manejar_senal);  // Ctrl+C = apagado seguro
+
+    if (argc < 2) {
+        fprintf(stderr, "Uso: %s <IP> [PUERTO]\n", argv[0]);
+        exit(1);
+    }
+
+    snprintf(ip, sizeof(ip), "%s", argv[1]);
+
+    if (argc == 3) {
+        puerto = atoi(argv[2]);
+        printf("%d", puerto);
+    }
 
     servidor_fd = socket(AF_INET, SOCK_STREAM, 0);
     servidor_addr.sin_family = AF_INET;
-    servidor_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servidor_addr.sin_port = htons(PUERTO);
+    servidor_addr.sin_addr.s_addr = inet_addr(ip);
+    servidor_addr.sin_port = htons(puerto);
 
     bind(servidor_fd, (struct sockaddr*)&servidor_addr, sizeof(servidor_addr));
     listen(servidor_fd, MAX_CLIENTES);
 
-    printf("[Servidor] Escuchando en puerto %d...\n", PUERTO);
+    printf("[Servidor] Escuchando en puerto %d...\n", puerto);
 
     while (servidor_activo) {
         int nuevo_fd = accept(servidor_fd, (struct sockaddr*)&cliente_addr, &cliente_len);
@@ -162,6 +182,7 @@ int main() {
         clientes_activos++;
         pthread_mutex_unlock(&lock);
 
+        printf("[Servidor] Nuevo cliente conectado\n");
         int* nuevo_socket = malloc(sizeof(int));
         *nuevo_socket = nuevo_fd;
         write(nuevo_fd, "Servidor pendiente de mensaje", 29);

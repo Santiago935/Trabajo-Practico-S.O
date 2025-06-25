@@ -22,7 +22,6 @@ typedef struct
 
 struct sembuf wait_op = {0, -1, 0};
 struct sembuf signal_op = {0, 1, 0};
-int seguir = 1;
 key_t key;
 int shmid;
 int semA;
@@ -49,7 +48,13 @@ void intHandler(int signal) {
     }
     else if(signal == SIGKILL)
     {
-        // No puede controlarse en teoría
+        //Teóricamente no puede manejarse
+        semctl(semA, 0, IPC_RMID);
+        semctl(semB, 0, IPC_RMID);
+        semctl(semC, 0, IPC_RMID);
+        semctl(semD, 0, IPC_RMID);
+        shmdt(mesa);
+        shmctl(shmid, IPC_RMID, NULL);
         exit(0);
     }
     else if(signal == SIGTERM)
@@ -73,8 +78,6 @@ int main()
         perror("shmget");
         exit(EXIT_FAILURE);
     }
-
-    //prctl(PR_SET_PDEATHSIG, SIGINT); 
 
     mesa = (Mesa*)shmat(shmid, NULL, 0);
     if (mesa == (void*)-1)
@@ -109,8 +112,10 @@ int main()
     int num;
 
     signal(SIGTERM, intHandler);
+    signal(SIGINT, intHandler);
+    signal(SIGKILL, intHandler);
 
-    while (opc != 4 && seguir)
+    while (opc != 4)
     {
         printf("\n\tMenu:\n1- Pastel de Papas.\n2- Guiso de lentejas.\n3- Locro.\n4- Salir.\n");
         scanf("%d", &opc);
