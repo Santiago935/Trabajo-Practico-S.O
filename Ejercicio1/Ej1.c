@@ -12,94 +12,194 @@
 
 #define N 5
 #define HIJOS 4
+#define MAX_CHEFFS 100
 
-typedef struct
-{
+typedef struct {
     int datos[N];
     int interacciones[HIJOS];
     int finalizar;
 } Mesa;
 
-struct sembuf wait_op = {0, -1, 0};
-struct sembuf signal_op = {0, 1, 0};
-key_t key;
-int shmid;
-int semA;
-int semB;
-int semC;
-int semD;
+// Semáforos
+struct sembuf wait_op = {0, -1, 0}; // wait
+struct sembuf signal_op = {0, 1, 0}; // signal
+
 Mesa* mesa;
+int shmid;
+int semA, semB, semC, semD;
 
-void cortarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal);
-void picarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal);
-void cocinarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal);
-void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, int semSignal);
+pid_t cheffsActivos[MAX_CHEFFS];
+int cheffsCount = 0;
 
-void intHandler(int signal) {
-	if (signal == SIGINT)
-    {
-        semctl(semA, 0, IPC_RMID);
-        semctl(semB, 0, IPC_RMID);
-        semctl(semC, 0, IPC_RMID);
-        semctl(semD, 0, IPC_RMID);
+// ----------Handlers------------
+
+void manejar_salida_hijo(int sig) {
+    printf("\n[Proceso %d] Finalizado abruptamente por SIGTERM\n", getpid());
+    kill(0, SIGTERM);
+    exit(0);
+}
+
+void instalar_handler_hijo(){
+    struct sigaction sa = {0};
+
+    sa.sa_handler = manejar_salida_hijo;
+    sigaction(SIGTERM, &sa, NULL);
+}
+
+void liberarRecursos(){
+    if (semA > 0) semctl(semA, 0, IPC_RMID);
+    if (semB > 0) semctl(semB, 0, IPC_RMID);
+    if (semC > 0) semctl(semC, 0, IPC_RMID);
+    if (semD > 0) semctl(semD, 0, IPC_RMID);
+    if (mesa) {
         shmdt(mesa);
         shmctl(shmid, IPC_RMID, NULL);
-        exit(0);
-    }
-    else if(signal == SIGKILL)
-    {
-        //Teóricamente no puede manejarse
-        semctl(semA, 0, IPC_RMID);
-        semctl(semB, 0, IPC_RMID);
-        semctl(semC, 0, IPC_RMID);
-        semctl(semD, 0, IPC_RMID);
-        shmdt(mesa);
-        shmctl(shmid, IPC_RMID, NULL);
-        exit(0);
-    }
-    else if(signal == SIGTERM)
-    {
-        semctl(semA, 0, IPC_RMID);
-        semctl(semB, 0, IPC_RMID);
-        semctl(semC, 0, IPC_RMID);
-        semctl(semD, 0, IPC_RMID);
-        shmdt(mesa);
-        shmctl(shmid, IPC_RMID, NULL);
-        exit(0);
     }
 }
 
-int main()
-{
-    key = ftok("/tmp", 65);
-    shmid = shmget(key, sizeof(Mesa), 0666 | IPC_CREAT);
-    if (shmid == -1)
+void manejar_salida_padre(int sig) {
+    printf("\n[PADRE %d] Finalizando por SIGTERM\n", getpid());
+    // Limpia antes de salir
+    if (semA > 0) semctl(semA, 0, IPC_RMID);
+    if (semB > 0) semctl(semB, 0, IPC_RMID);
+    if (semC > 0) semctl(semC, 0, IPC_RMID);
+    if (semD > 0) semctl(semD, 0, IPC_RMID);
+    if (shmid > 0)
     {
+        shmdt(mesa);
+        shmctl(shmid, IPC_RMID, NULL);
+    }
+    exit(0);
+}
+
+// ---------- FUNCIONES HIJOS ----------
+
+void cortarIngredientes(int cantidad, int num, Mesa* mesa, int semEspera, int semSignal) {
+    instalar_handler_hijo();
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
+    semop(semEspera, &wait_op, 1);
+    printf("\n[Cortar] PID: %d\n", getpid());
+
+    for (int i = 0; i < cantidad; i++) {
+        mesa->datos[i] /= num;
+        printf(" Corta %d", mesa->datos[i]);
+    }
+    printf("\n");
+
+    mesa->interacciones[0]++;
+    sleep(10);
+
+    semop(semSignal, &signal_op, 1);
+    exit(0);
+}
+
+void picarIngredientes(int cantidad, int num, Mesa* mesa, int semEspera, int semSignal) {
+    instalar_handler_hijo();
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
+    semop(semEspera, &wait_op, 1);
+    printf("\n[Picar] PID: %d\n", getpid());
+
+    for (int i = 0; i < cantidad; i++) {
+        mesa->datos[i] *= num;
+        printf(" Pica %d", mesa->datos[i]);
+    }
+    printf("\n");
+
+    mesa->interacciones[1]++;
+    sleep(15);
+
+    semop(semSignal, &signal_op, 1);
+    exit(0);
+}
+
+void cocinarIngredientes(int cantidad, int num, Mesa* mesa, int semEspera, int semSignal) {
+    instalar_handler_hijo();
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
+    semop(semEspera, &wait_op, 1);
+    printf("\n[Cocinar] PID: %d\n", getpid());
+
+    for (int i = 0; i < cantidad; i++) {
+        mesa->datos[i] += num;
+        printf(" Cocina %d", mesa->datos[i]);
+    }
+    printf("\n");
+
+    mesa->interacciones[2]++;
+    sleep(10);
+
+    semop(semSignal, &signal_op, 1);
+    exit(0);
+}
+
+void emplatarIngredientes(int cantidad, Mesa* mesa, int semEspera, int semSignal) {
+    instalar_handler_hijo();
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
+    semop(semEspera, &wait_op, 1);
+    printf("\n[Emplatar] PID: %d\n", getpid());
+
+    for (int i = 0; i < cantidad - 1; i++) {
+        for (int j = 0; j < cantidad - i - 1; j++) {
+            if (mesa->datos[j] > mesa->datos[j + 1]) {
+                int tmp = mesa->datos[j];
+                mesa->datos[j] = mesa->datos[j + 1];
+                mesa->datos[j + 1] = tmp;
+            }
+        }
+    }
+
+    printf("\nEmplatado: ");
+    for (int i = 0; i < cantidad; i++) {
+        printf("%d ", mesa->datos[i]);
+    }
+    printf("\n");
+
+    mesa->interacciones[3]++;
+    sleep(20);
+
+    semop(semSignal, &signal_op, 1);
+    exit(0);
+}
+
+
+int main() {
+    signal(SIGINT, manejar_salida_padre);
+    signal(SIGTERM, manejar_salida_padre);
+
+    instalar_handler_hijo();
+
+    key_t key = ftok("/tmp", 65);
+    shmid = shmget(key, sizeof(Mesa), 0666 | IPC_CREAT);
+    if (shmid == -1) {
         perror("shmget");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     mesa = (Mesa*)shmat(shmid, NULL, 0);
-    if (mesa == (void*)-1)
-    {
+    if (mesa == (void*)-1) {
         perror("shmat");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     int datos_iniciales[N] = {30, 10, 60, 20, 8};
+
     memcpy(mesa->datos, datos_iniciales, sizeof(datos_iniciales));
+
     memset(mesa->interacciones, 0, sizeof(mesa->interacciones));
+
     mesa->finalizar = 0;
 
+    // crear semáforos
     semA = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
     semB = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
     semC = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
     semD = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666);
 
-    if (semA == -1 || semB == -1 || semC == -1 || semD == -1)
-    {
+    if (semA == -1 ||
+        semB == -1 ||
+        semC == -1 ||
+        semD == -1) {
         perror("semget");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     semctl(semA, 0, SETVAL, 1);
@@ -109,174 +209,74 @@ int main()
 
     int opc = 0;
     int platos[3] = {0, 0, 0};
+
     int num;
 
-    signal(SIGTERM, intHandler);
-    signal(SIGINT, intHandler);
-    signal(SIGKILL, intHandler);
+    while (opc != 4) {
+        if (mesa->finalizar) break;
 
-    while (opc != 4)
-    {
         printf("\n\tMenu:\n1- Pastel de Papas.\n2- Guiso de lentejas.\n3- Locro.\n4- Salir.\n");
+
         scanf("%d", &opc);
 
-        if (opc > 0 && opc < 4)
-        {
-            switch (opc)
-            {
-            case 1:
-                num = 2;
-                break;
-            case 2:
-                num = 5;
-                break;
-            case 3:
-                num = 8;
-                break;
-            }
+        if (opc > 0 && opc < 4) {
+            int num = (opc == 1) ? 2 : (opc == 2) ? 5 : 8;
+
             pid_t cheff = fork();
-            platos[opc - 1]++;
-            if (cheff == 0)
-            {
-                prctl(PR_SET_PDEATHSIG, SIGKILL);
-                //setpgid(0, 0); 
-                printf("\nPID cheff: %d\n", getpid());
 
-                pid_t cocineroCorta = fork();
-                if (cocineroCorta == 0)
-                    cortarIngredientes(N, num, mesa, semA, semB);
+            if (cheff == 0) {
+                instalar_handler_hijo();
+                prctl(PR_SET_PDEATHSIG, SIGTERM);
+                if (setpgid(0, 0) == -1)
+                {
+                    perror("setpgid");
+                    exit(1);
+                }
 
-                pid_t cocineroCocina = fork();
-                if (cocineroCocina == 0)
-                    cocinarIngredientes(N, num, mesa, semB, semC);
+                printf("\n[Cheff] PID: %d\n", getpid());
 
-                pid_t cocineroPica = fork();
-                if (cocineroPica == 0)
-                    picarIngredientes(N, num, mesa, semC, semD);
+                if (fork() == 0) cortarIngredientes(N, num, mesa, semA, semB);
+                if (fork() == 0) cocinarIngredientes(N, num, mesa, semB, semC);
+                if (fork() == 0) picarIngredientes(N, num, mesa, semC, semD);
+                if (fork() == 0) emplatarIngredientes(N, mesa, semD, semA);
 
-                pid_t cocineroEmpalta = fork();
-                if (cocineroEmpalta == 0)
-                    emplatarIngredientes(N, mesa, semD, semA);
-
-                for (int i = 0; i < HIJOS; i++)
-                    wait(NULL);
-
+                for (int i = 0; i < HIJOS; i++) wait(NULL);
                 exit(0);
             }
 
+            // En el padre
+            if (setpgid(cheff, cheff) == -1) {
+                perror("setpgid padre");
+
+            }
+            cheffsActivos[cheffsCount++] = cheff;
+
             waitpid(cheff, NULL, 0);
             memcpy(mesa->datos, datos_iniciales, sizeof(datos_iniciales));
+
+            platos[opc - 1]++;
         }
-        else if (opc == 4)
-        {
+        else if (opc == 4) {
             printf("\n--- Informe final ---\n");
-            for (int i = 0; i < 3; i++)
+
+            for (int i = 0; i < 3; i++) {
                 printf("Se pidieron en total del plato %d: %d\n", i + 1, platos[i]);
+            }
+
             printf("\nInteracciones por cocinero:\n");
+
             printf("Cortar: %d\n", mesa->interacciones[0]);
             printf("Picar: %d\n", mesa->interacciones[1]);
             printf("Cocinar: %d\n", mesa->interacciones[2]);
             printf("Emplatar: %d\n", mesa->interacciones[3]);
 
-            semctl(semA, 0, IPC_RMID);
-            semctl(semB, 0, IPC_RMID);
-            semctl(semC, 0, IPC_RMID);
-            semctl(semD, 0, IPC_RMID);
-            shmdt(mesa);
-            shmctl(shmid, IPC_RMID, NULL);
-            return 0;
+            liberarRecursos();
         }
-        else
-            printf("Opcion Invalida. Ingrese Nuevamente..\n");
-    }
+        else {
+            printf("Opción inválida. Ingrese nuevamente...\n");
 
-    /*semctl(semA, 0, IPC_RMID);
-    semctl(semB, 0, IPC_RMID);
-    semctl(semC, 0, IPC_RMID);
-    semctl(semD, 0, IPC_RMID);
-    shmdt(mesa);
-    shmctl(shmid, IPC_RMID, NULL);*/
+        }
+    }
 
     return 0;
-}
-
-void cortarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal)
-{
-    prctl(PR_SET_PDEATHSIG, SIGKILL);
-    semop(semEspera, &wait_op, 1);
-    printf("\nPID cortar: %d\n", getpid());
-
-    for (int i = 0; i < cantidadIngredientes; i++)
-    {
-        mesa->datos[i] = mesa->datos[i] / num;
-        printf("\nCocinero corta ingrediente %d", mesa->datos[i]);
-    }
-    mesa->interacciones[0]++;
-    sleep(10);
-
-    semop(semSignal, &signal_op, 1);
-    exit(0);
-}
-
-void picarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal)
-{
-    prctl(PR_SET_PDEATHSIG, SIGKILL);
-    semop(semEspera, &wait_op, 1);
-    printf("\nPID picador: %d\n", getpid());
-
-    for (int i = 0; i < cantidadIngredientes; i++)
-    {
-        mesa->datos[i] = mesa->datos[i] * num;
-        printf("\nCocinero pica ingrediente %d", mesa->datos[i]);
-    }
-
-    mesa->interacciones[1]++;
-    sleep(15);
-
-    semop(semSignal, &signal_op, 1);
-    exit(0);
-}
-
-void cocinarIngredientes(int cantidadIngredientes, int num, Mesa* mesa, int semEspera, int semSignal)
-{
-    prctl(PR_SET_PDEATHSIG, SIGKILL);
-    semop(semEspera, &wait_op, 1);
-    printf("\nPID cocinar: %d", getpid());
-
-    for (int i = 0; i < cantidadIngredientes; i++)
-    {
-        mesa->datos[i] = mesa->datos[i] + num;
-        printf("\nCocinero cocina ingrediente %d", mesa->datos[i]);
-    }
-    mesa->interacciones[2]++;
-    sleep(10);
-    semop(semSignal, &signal_op, 1);
-
-    exit(0);
-}
-
-void emplatarIngredientes(int cantidadIngredientes, Mesa* mesa, int semEspera, int semSignal)
-{
-    prctl(PR_SET_PDEATHSIG, SIGKILL);
-    semop(semEspera, &wait_op, 1);
-    printf("\nPID emplatador: %d", getpid());
-
-    for (int i = 0; i < cantidadIngredientes - 1; i++)
-        for (int j = 0; j < cantidadIngredientes - i - 1; j++)
-            if (mesa->datos[j] > mesa->datos[j + 1])
-            {
-                int tmp = mesa->datos[j];
-                mesa->datos[j] = mesa->datos[j + 1];
-                mesa->datos[j + 1] = tmp;
-            }
-
-    printf("\nCocinero emplata ingredientes: \n");
-    for (int i = 0; i < cantidadIngredientes; i++)
-        printf("%d ", mesa->datos[i]);
-
-    mesa->interacciones[3]++;
-    sleep(20);
-
-    semop(semSignal, &signal_op, 1);
-    exit(0);
 }
